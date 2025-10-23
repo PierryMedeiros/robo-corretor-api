@@ -1,0 +1,19 @@
+{
+  "name": "correction-service",
+  "version": "1.0.0",
+  "description": "A service to automatically correct projects using Gemini.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "keywords": [
+    "gemini",
+    "correction",
+    "express"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
