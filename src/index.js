@@ -1,5 +1,5 @@
 const express = require('express');
-const { exec, spawn } = require('child_process'); // Importa 'spawn'
+const { exec, spawn } = require('child_process');
 const util = require('util');
 const fs = require('fs').promises;
 const path = require('path');
@@ -7,7 +7,6 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// O execPromise ainda é útil para comandos simples como o git clone
 const execPromise = util.promisify(exec);
 
 const jobQueue = [];
@@ -94,22 +93,13 @@ async function runCorrection(repoUrl, enunciado) {
         await execPromise(`git clone --depth 1 ${repoUrl} .`, { cwd: WORKSPACE_DIR });
         console.log(`Repositório clonado com sucesso.`);
 
-        // ================== INÍCIO DA MUDANÇA PARA 'spawn' ==================
         console.log('Executando a análise do Gemini...');
         const geminiResult = await new Promise((resolve, reject) => {
-            // Inicia o processo 'gemini' sem um shell, passando os argumentos em um array
-            const geminiProcess = spawn(
-                'gemini',
-                ['-m', 'gemini-2.5-pro', '-o', 'json'],
-                { cwd: WORKSPACE_DIR, shell: false } // shell: false é crucial
-            );
-
+            const geminiProcess = spawn('gemini', ['-m', 'gemini-2.5-pro', '-o', 'json'], { cwd: WORKSPACE_DIR, shell: false });
             let stdoutData = '';
             let stderrData = '';
-
             geminiProcess.stdout.on('data', (data) => { stdoutData += data.toString(); });
             geminiProcess.stderr.on('data', (data) => { stderrData += data.toString(); });
-
             geminiProcess.on('close', (code) => {
                 if (code !== 0) {
                     reject(new Error(`Processo do Gemini encerrou com código ${code}. Stderr: ${stderrData}`));
@@ -117,34 +107,46 @@ async function runCorrection(repoUrl, enunciado) {
                     resolve(stdoutData);
                 }
             });
-
-            geminiProcess.on('error', (err) => {
-                reject(new Error(`Falha ao iniciar o processo do Gemini: ${err.message}`));
-            });
-
-            // Escreve o prompt diretamente no stream de entrada (stdin) do processo
+            geminiProcess.on('error', (err) => { reject(new Error(`Falha ao iniciar o processo do Gemini: ${err.message}`)); });
             geminiProcess.stdin.write(promptTemplate);
-            geminiProcess.stdin.end(); // Informa que terminamos de escrever
+            geminiProcess.stdin.end();
         });
         console.log('Análise do Gemini concluída.');
-        // =================== FIM DA MUDANÇA PARA 'spawn' ===================
 
-        const jsonMatch = geminiResult.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
+        const outerJsonMatch = geminiResult.match(/\{[\s\S]*\}/);
+        if (!outerJsonMatch) {
             throw new Error(`Resposta da Gemini CLI não contém JSON válido. Saída recebida: ${geminiResult}`);
         }
-        const analysisResult = JSON.parse(jsonMatch[0]);
+        const analysisResult = JSON.parse(outerJsonMatch[0]);
 
+        // ================== INÍCIO DA CORREÇÃO ==================
         if (analysisResult && typeof analysisResult.response === 'string') {
-            try {
-                return JSON.parse(analysisResult.response);
-            } catch (e) {
-                return {
+            const innerResponseString = analysisResult.response;
+            
+            // Procura pelo JSON dentro da string de resposta, ignorando o ```json
+            const innerJsonMatch = innerResponseString.match(/\{[\s\S]*\}/);
+
+            if (innerJsonMatch) {
+                try {
+                    // Faz o parse do JSON que foi encontrado
+                    return JSON.parse(innerJsonMatch[0]);
+                } catch (e) {
+                    console.error("A resposta interna parecia JSON mas falhou no parse:", e.message);
+                    return {
+                        status: "ERRO_DE_ANALISE",
+                        feedback: `A IA retornou um JSON mal formatado. Resposta bruta: ${innerResponseString}`
+                    };
+                }
+            } else {
+                 // Se não encontrou nem mesmo um padrão de JSON
+                 return {
                     status: "ERRO_DE_ANALISE",
-                    feedback: `A IA retornou um formato inesperado. Resposta bruta: ${analysisResult.response}`
+                    feedback: `A IA retornou um formato inesperado (não JSON). Resposta bruta: ${innerResponseString}`
                 };
             }
         }
+        // =================== FIM DA CORREÇÃO ===================
+        
         return analysisResult;
 
     } catch (error) {

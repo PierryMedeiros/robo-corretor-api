@@ -44,12 +44,12 @@ Envie uma requisição `POST` para o endpoint `/corrigir` com a URL do repositó
 
 ```bash
 curl -X POST http://localhost:3000/corrigir \
--H "Content-Type: application/json" \
--d 
-'{'
-  "repo_url": "https://github.com/usuario/repositorio-do-aluno.git",
-  "enunciado": "Crie uma API REST com Node.js e Express que tenha um endpoint para somar dois números."
-}'
+  -H "Content-Type: application/json" \
+  -d '{
+    "repo_url": "https://github.com/thyrso/POSGoExperts-01.git",
+    "enunciado": "Descrição:\nOlá dev, tudo bem?\n\nNeste desafio vamos aplicar o que aprendemos sobre webserver http, contextos, banco de dados e manipulação de arquivos com Go.\n\nVocê precisará nos entregar dois sistemas em Go:\n- client.go\n- server.go\n\nOs requisitos para cumprir este desafio são:\n\nO client.go deverá realizar uma requisição HTTP no server.go solicitando a cotação do dólar.\n\nO server.go deverá consumir a API contendo o câmbio de Dólar e Real no endereço: https://economia.awesomeapi.com.br/json/last/USD-BRL e em seguida deverá retornar no formato JSON o resultado para o cliente.\n\nUsando o package \"context\", o server.go deverá registrar no banco de dados SQLite cada cotação recebida, sendo que o timeout máximo para chamar a API de cotação do dólar deverá ser de 200ms e o timeout máximo para conseguir persistir os dados no banco deverá ser de 10ms.\n\nO client.go precisará receber do server.go apenas o valor atual do câmbio (campo \"bid\" do JSON). Utilizando o package \"context\", o client.go terá um timeout máximo de 300ms para receber o resultado do server.go.\n\nOs 3 contextos deverão retornar erro nos logs caso o tempo de execução seja insuficiente.\n\nO client.go terá que salvar a cotação atual em um arquivo \"cotacao.txt\" no formato: Dólar: {valor}\n\nO endpoint necessário gerado pelo server.go para este desafio será: /cotacao e a porta a ser utilizada pelo servidor HTTP será a 8080.\n\nAo finalizar, envie o link do repositório para correção."
+  }'
+
 ```
 
 ### Resposta
