@@ -12,6 +12,7 @@ WORKDIR /app
 
 # 5. Copie os arquivos de dependência e instale-as
 COPY package.json package-lock.json* ./
+COPY prompt_template.md ./src/
 RUN npm install --production
 
 # 6. Copie o resto do código da aplicação
